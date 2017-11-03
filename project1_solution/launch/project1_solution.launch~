@@ -1,0 +1,4 @@
+<launch>
+	<node pkg="two_int_talker" type="two_int_talker.py" name="two_int_talker" output="screen"/>
+	<node pkg="project1_solution" type="solution.py" name="add_two_ints" output="screen"/>
+</launch>
