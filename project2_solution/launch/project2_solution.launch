@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="project2_solution" type="solution.py" name="my_static_tf2_broadcaster" output="screen"/>
+	<node pkg="marker_publisher" type="marker_publisher" name="marker_publisher" output="screen"/>
+	<node name = "my_rviz" pkg="rviz" type="rviz" args = "-d $(find project2_solution)/config/config.rviz" />
+</launch>
