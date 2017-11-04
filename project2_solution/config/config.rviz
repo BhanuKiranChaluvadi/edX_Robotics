@@ -62,7 +62,7 @@ Visualization Manager:
           Value: true
         robot_frame:
           Value: true
-      Marker Scale: 2.50999999
+      Marker Scale: 2.0
       Name: TF
       Show Arrows: true
       Show Axes: true
