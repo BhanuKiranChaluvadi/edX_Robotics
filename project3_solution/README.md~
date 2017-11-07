@@ -1,52 +1,40 @@
-rosnode info /fwk
-Node [/fwk]
-Publications: 
- * /rosout [rosgraph_msgs/Log]
- * /tf [tf/tfMessage]
-
-Subscriptions: 
- * /joint_states [sensor_msgs/JointState]
-
-Services: 
- * /fwk/set_logger_level
- * /fwk/get_loggers
-
-
-rosnode info /robot_sim 
-Node [/robot_sim]
-Publications: 
- * /joint_states [sensor_msgs/JointState]
- * /rosout [rosgraph_msgs/Log]
-
-Subscriptions: 
- * /joint_velocities [unknown type]
- * /joint_positions [unknown type]
- * /joint_command [unknown type]
-
-Services: 
- * /robot_sim/get_loggers
- * /robot_sim/set_logger_level
-
-
-rosnode info /mover
-Node [/mover]
-Publications: 
- * /joint_velocities [sensor_msgs/JointState]
- * /rosout [rosgraph_msgs/Log]
- * /ping [std_msgs/Int8]
-
-Subscriptions: None
-
-Services: 
- * /mover/set_logger_level
- * /mover/get_loggers
-
+Solution to project -3 Robotics couse work for edX by university of columbia
+https://courses.edx.org/courses/course-v1:ColumbiaX+CSMM.103x+1T2017/course/
 
 # Description
 1. Joint state publisher publishes at fixed rate (no subscriber call back)
 2. rosrun robot_sim position_command.py
-	opens up GUI to set /joint_positions and publish.
+	opens up GUI and publish set /joint_positions.
 3. Based on published /joint positions --> /joint_states are computed.
 4. From /joint_states forward kinematic node call back is executed.
+
+
+# Forward Kinematics Implementaion
+1. Check the picture in current folder named "transformation.png"
+2. KinematicChain.pdf
+
+# MODIFY:
+I am running Ubuntu 16.04 with ROS Kinect, but catkin_make gives out an error
+To fix this, you will need to modify the file located in robot_sim/CMakeLists.txt
+# replace line 34
+link_directories(/opt/ros/indigo/lib/)
+# with
+link_directories(/opt/ros/kinetic/lib/)
+
+
+# RUN:
+> roslaunch robot_sim kuka_lwr.launch
+
+# IGNORE (if present):
+1. Unknown tag: com
+   Scalar element defined multiple times: collision
+2. The STL file 'package://lwr_defs/meshes/lwr/link_5.STL' is malformed. 
+	It starts with the word 'solid', indicating that it's an ASCII STL 
+	file, but it does not contain the word 'endsolid' so it is either a
+	 malformed ASCII STL file or it is actually a binary STL file. 
+	 Trying to interpret it as a binary STL file instead.
+
+
+
 
 

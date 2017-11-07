@@ -128,16 +128,31 @@ class ForwardKinematics(object):
         # We start with the identity
         T = tf.transformations.identity_matrix()
 
-        # def convert_to_message(T, child, parent):
-        # t = geometry_msgs.msg.TransformStamped() return t
+        for joint in joints:
 
-        # YOUR CODE GOES HERE
+            static_translation = tf.transformations.translation_matrix(joint.origin.xyz)
+            static_rotation = tf.transformations.quaternion_matrix(
+                tf.transformations.quaternion_from_euler(joint.origin.rpy[0], joint.origin.rpy[1], joint.origin.rpy[2]))
 
-        T1 = tf.transformations.concatenate_matrices(
-            tf.transformations.translation_matrix((0.0, 0.1, 0.1)),
-            tf.transformations.quaternion_matrix(
-                tf.transformations.quaternion_about_axis(1.57, (0.0, -1.314, 0.9)))
-        )
+            if joint.type == "fixed":
+                dynamic_rotation = tf.transformations.identity_matrix()
+
+            elif joint.type == "revolute":
+                index = joint_values.name.index(joint.name)
+                q_i = joint_values.position[index]
+                dynamic_rotation = tf.transformations.quaternion_matrix(
+                    tf.transformations.quaternion_about_axis(q_i, joint.axis))
+            else:
+                rospy.logerr("Translational joint is present - need to implement code")
+                dynamic_rotation = tf.transformations.identity_matrix()
+
+            T = tf.transformations.concatenate_matrices(
+                T,
+                static_translation,
+                static_rotation,
+                dynamic_rotation
+            )
+            all_transforms.transforms.append(convert_to_message(T, joint.child, "world_link"))
 
         return all_transforms
 
