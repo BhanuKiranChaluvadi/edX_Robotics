@@ -12,6 +12,7 @@ https://courses.edx.org/courses/course-v1:ColumbiaX+CSMM.103x+1T2017/course/
 # Forward Kinematics Implementaion
 1. Check the picture in current folder named "transformation.png"
 2. KinematicChain.pdf
+3. Robot.pdf
 
 # MODIFY:
 I am running Ubuntu 16.04 with ROS Kinect, but catkin_make gives out an error
