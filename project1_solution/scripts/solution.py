@@ -3,8 +3,7 @@ import rospy
 
 
 from std_msgs.msg import Int16
-# from project1_solution.msg import TwoInts
-from project1_solution_msgs.msg import TwoInts
+from project1_solution.msg import TwoInts
 
 pub = rospy.Publisher('sum', Int16, queue_size=10)
 

@@ -3,8 +3,7 @@ import random
 
 import rospy
 # from std_msgs.msg import Int16
-# from project1_solution.msg import TwoInts
-from project1_solution_msgs.msg import TwoInts
+from project1_solution.msg import TwoInts
 
 
 class Talker:
