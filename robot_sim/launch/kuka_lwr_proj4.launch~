@@ -1,0 +1,18 @@
+<launch>
+
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find lwr_defs)/robots/kuka_lwr_arm.urdf.xml'" />
+
+  <node name="robot_sim" pkg="robot_sim" type="robot_sim_bringup" respawn="false" output="screen"/>
+  <!--node name="fwk" pkg="forward_kinematics" type="fwk.py" respawn="false" output="screen"/-->
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" 
+  	name="robot_state_publisher" output="screen" >
+  </node>
+
+  <node name="marker_control" pkg="cartesian_control" type="marker_control.py" respawn="false" output="screen"/>
+  
+  <node name="cartesian_control" pkg="cartesian_control" type="cartesian_control.py" respawn="false" output="screen"/>
+  
+  <node name = "my_rviz" pkg="rviz" type="rviz" args = "-d $(find robot_sim)/config/proj4.rviz" />
+  
+</launch>
