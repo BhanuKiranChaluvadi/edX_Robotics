@@ -22,16 +22,59 @@ def S_matrix(w):
     S[2,1] =  w[0]
     return S
 
+
+def scale_np_array(original_np_array, limit):
+    norm = numpy.linalg.norm(original_np_array)
+    if norm > limit:
+        scaled_np_array = original_np_array * (limit / norm)
+    else:
+        scaled_np_array = original_np_array
+
+    return scaled_np_array
+
+
 # This is the function that must be filled in as part of the Project.
 def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
                       red_control, q_current, q0_desired):
     num_joints = len(joint_transforms)
     dq = numpy.zeros(num_joints)
-    #-------------------- Fill in your code here ---------------------------
+    # -------------------- Fill in your code here ---------------------------
 
-    #----------------------------------------------------------------------
+    current_T_ee_b = numpy.linalg.inv(b_T_ee_current)
+
+    current_T_ee_desired = tf.transformations.concatenate_matrices(
+        current_T_ee_b,
+        b_T_ee_desired
+    )
+
+    EE_dTrans = current_T_ee_desired[:3, 3]
+
+    EE_axis_angle = rotation_from_matrix(current_T_ee_desired)
+    EE_dRot = EE_axis_angle[0] * numpy.array(EE_axis_angle[1])
+
+    # P controller - converting to translational and angular velocities
+    gain = 1.0
+    EE_translational_vel = gain * EE_dTrans
+    EE_angular_vel = gain * EE_dRot
+
+    # scale translational and angular velocities
+    translational_vel_limit = 0.1  # 0.1 m/s
+    angular_vel_limit = 1.0  # 1.0 rad/s
+
+    scaled_EE_translational_vel = scale_np_array(EE_translational_vel, translational_vel_limit)
+    scaled_EE_angular_vel = scale_np_array(EE_angular_vel, angular_vel_limit)
+
+    # Combined velocity of end effector
+    V_ee = numpy.concatenate([scaled_EE_translational_vel, scaled_EE_angular_vel], axis=0)
+
+    # ####################################################################################
+    # #####          Numerically compute - Robot Jacobian           ######################
+    # ####################################################################################
+
+    # ----------------------------------------------------------------------
     return dq
-    
+
+
 def convert_from_message(t):
     trans = tf.transformations.translation_matrix((t.translation.x,
                                                   t.translation.y,
@@ -43,23 +86,24 @@ def convert_from_message(t):
     T = numpy.dot(trans,rot)
     return T
 
+
 # Returns the angle-axis representation of the rotation contained in the input matrix
 # Use like this:
 # angle, axis = rotation_from_matrix(R)
 def rotation_from_matrix(matrix):
     R = numpy.array(matrix, dtype=numpy.float64, copy=False)
     R33 = R[:3, :3]
-    # axis: unit eigenvector of R33 corresponding to eigenvalue of 1
+    # axis: unit eigen vector of R33 corresponding to eigenvalue of 1
     l, W = numpy.linalg.eig(R33.T)
     i = numpy.where(abs(numpy.real(l) - 1.0) < 1e-8)[0]
     if not len(i):
-        raise ValueError("no unit eigenvector corresponding to eigenvalue 1")
+        raise ValueError("no unit eigen vector corresponding to eigenvalue 1")
     axis = numpy.real(W[:, i[-1]]).squeeze()
-    # point: unit eigenvector of R33 corresponding to eigenvalue of 1
+    # point: unit eigen vector of R33 corresponding to eigenvalue of 1
     l, Q = numpy.linalg.eig(R)
     i = numpy.where(abs(numpy.real(l) - 1.0) < 1e-8)[0]
     if not len(i):
-        raise ValueError("no unit eigenvector corresponding to eigenvalue 1")
+        raise ValueError("no unit eigen vector corresponding to eigenvalue 1")
     # rotation angle depending on axis
     cosa = (numpy.trace(R33) - 1.0) / 2.0
     if abs(axis[2]) > 1e-8:
@@ -71,26 +115,27 @@ def rotation_from_matrix(matrix):
     angle = math.atan2(sina, cosa)
     return angle, axis
 
+
 class CartesianControl(object):
 
-    #Initialization
+    # Initialization
     def __init__(self):
-        #Loads the robot model, which contains the robot's kinematics information
+        # Loads the robot model, which contains the robot's kinematics information
         self.robot = URDF.from_parameter_server()
 
-        #Subscribes to information about what the current joint values are.
+        # Subscribes to information about what the current joint values are.
         rospy.Subscriber("/joint_states", JointState, self.joint_callback)
 
-        #Subscribes to command for end-effector pose
+        # Subscribes to command for end-effector pose
         rospy.Subscriber("/cartesian_command", Transform, self.command_callback)
 
-        #Subscribes to command for redundant dof
+        # Subscribes to command for redundant dof
         rospy.Subscriber("/redundancy_command", Float32, self.redundancy_callback)
 
         # Publishes desired joint velocities
         self.pub_vel = rospy.Publisher("/joint_velocities", JointState, queue_size=1)
 
-        #This is where we hold the most recent joint transforms
+        # This is where we hold the most recent joint transforms
         self.joint_transforms = []
         self.q_current = []
         self.x_current = tf.transformations.identity_matrix()
@@ -119,7 +164,7 @@ class CartesianControl(object):
     def timer_callback(self, event):
         msg = JointState()
         self.mutex.acquire()
-        if time.time() - self.last_command_time < 0.5:
+        if time.time() - self.last_command_time > 0.5:
             dq = cartesian_control(self.joint_transforms, 
                                    self.x_current, self.x_target,
                                    False, self.q_current, self.q0_desired)
@@ -161,7 +206,7 @@ class CartesianControl(object):
         for i in range(0,len(self.robot.child_map[link])):
             (joint_name, next_link) = self.robot.child_map[link][i]
             if joint_name not in self.robot.joint_map:
-                rospy.logerror("Joint not found in map")
+                rospy.logerr("Joint not found in map")
                 continue
             current_joint = self.robot.joint_map[joint_name]        
 
@@ -175,7 +220,7 @@ class CartesianControl(object):
             current_joint_T = numpy.dot(T, origin_T)
             if current_joint.type != 'fixed':
                 if current_joint.name not in joint_values.name:
-                    rospy.logerror("Joint not found in list")
+                    rospy.logerr("Joint not found in list")
                     continue
                 # compute transform that aligns rotation axis with z
                 aligned_joint_T = numpy.dot(current_joint_T, self.align_with_z(current_joint.axis))
