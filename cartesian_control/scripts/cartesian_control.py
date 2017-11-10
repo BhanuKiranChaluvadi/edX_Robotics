@@ -91,9 +91,9 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
 
     J = numpy.transpose(numpy.asarray(J))
 
-    pseudo_J = numpy.linalg.pinv(J, 0.01)
+    safe_pseudoInv_J = numpy.linalg.pinv(J, 0.01)
 
-    dq = numpy.dot(pseudo_J, V_ee)
+    dq = numpy.dot(safe_pseudoInv_J, V_ee)
 
     # threshold
     dq[dq > 1] = 1
@@ -102,13 +102,12 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
     # #####          Null space control                             ######################
     # ####################################################################################
     if red_control:
-        print "q0_desired: ", q0_desired
-        print "q0_current: ", q_current[0]
         dq_nullSpace = numpy.zeros(num_joints)
         numpy.put(dq_nullSpace, [0], q0_desired - q_current[0])
         q0_vel = gain * dq_nullSpace
 
-        nullSpace = numpy.subtract(numpy.identity(7), numpy.dot(pseudo_J, J))
+        original_pseudoInv_J = numpy.linalg.pinv(J)
+        nullSpace = numpy.subtract(numpy.identity(7), numpy.dot(original_pseudoInv_J, J))
         q0_null_vel = numpy.dot(nullSpace, q0_vel)
 
         dq = numpy.add(dq, q0_null_vel)
