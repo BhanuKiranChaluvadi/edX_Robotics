@@ -38,8 +38,6 @@ def scale_np_array(original_np_array, limit):
 def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
                       red_control, q_current, q0_desired):
     num_joints = len(joint_transforms)
-    dq = numpy.zeros(num_joints)
-    # -------------------- Fill in your code here ---------------------------
 
     current_T_ee_b = numpy.linalg.inv(b_T_ee_current)
 
@@ -54,7 +52,7 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
     EE_dRot = EE_axis_angle[0] * numpy.array(EE_axis_angle[1])
 
     # P controller - converting to translational and angular velocities
-    gain = 1.0
+    gain = 2.0
     EE_translational_vel = gain * EE_dTrans
     EE_angular_vel = gain * EE_dRot
 
@@ -85,7 +83,7 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
         ee_Rot_joint = numpy.transpose(joint_T_ee[:3, :3])
 
         # figuring out last column
-        top_right_matrix = numpy.dot(-1*ee_Rot_joint, S_matrix(joint_translation_ee))
+        top_right_matrix = numpy.dot(-1 * ee_Rot_joint, S_matrix(joint_translation_ee))
 
         J_col = numpy.concatenate([top_right_matrix[:, -1], ee_Rot_joint[:, -1]], axis=0)
 
@@ -97,7 +95,24 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
 
     dq = numpy.dot(pseudo_J, V_ee)
 
-    # ----------------------------------------------------------------------
+    # threshold
+    dq[dq > 1] = 1
+
+    # ####################################################################################
+    # #####          Null space control                             ######################
+    # ####################################################################################
+    if red_control:
+        print "q0_desired: ", q0_desired
+        print "q0_current: ", q_current[0]
+        dq_nullSpace = numpy.zeros(num_joints)
+        numpy.put(dq_nullSpace, [0], q0_desired - q_current[0])
+        q0_vel = gain * dq_nullSpace
+
+        nullSpace = numpy.subtract(numpy.identity(7), numpy.dot(pseudo_J, J))
+        q0_null_vel = numpy.dot(nullSpace, q0_vel)
+
+        dq = numpy.add(dq, q0_null_vel)
+
     return dq
 
 
