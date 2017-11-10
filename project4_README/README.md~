@@ -47,4 +47,7 @@ Subscriptions:
  * /joint_positions [unknown type]
  * /joint_command [sensor_msgs/JointState]
 
+# Change:
+If not working, Change "RobotDescription" file. point it to .URDF rather than URDF.XML
+
 

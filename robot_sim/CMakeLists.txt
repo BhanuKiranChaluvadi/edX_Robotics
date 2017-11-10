@@ -4,6 +4,7 @@ project(robot_sim)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
+  trajectory_msgs
   urdf
 )
 
@@ -15,6 +16,7 @@ catkin_package(
   CATKIN_DEPENDS 
     roscpp 
     sensor_msgs
+    trajectory_msgs
     urdf
 )
 
@@ -28,6 +30,7 @@ add_library(robot_sim
   src/robot.cpp
   src/velocity_controller.cpp
   src/position_controller.cpp
+  src/trajectory_executer.cpp
 )
 # link_directories(/opt/ros/kinetic/lib/)
 link_directories(/opt/ros/indigo/lib/)
