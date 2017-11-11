@@ -1,0 +1,16 @@
+class T:
+    def __init__(self):
+        self.n = 3
+
+    def class_function(self):
+        self.n = 5
+        print "Hello"
+
+
+def test_function():
+    print n
+
+
+if __name__ == '__main__':
+    classes = T()
+    test_function()

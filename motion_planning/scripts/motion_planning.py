@@ -17,6 +17,8 @@ import rospy
 import sensor_msgs.msg
 import tf
 import trajectory_msgs.msg
+import random
+
 
 def convert_to_message(T):
     t = geometry_msgs.msg.Pose()
@@ -31,6 +33,7 @@ def convert_to_message(T):
     t.orientation.w = orientation[3]        
     return t
 
+
 def convert_from_message(msg):
     R = tf.transformations.quaternion_matrix((msg.orientation.x,
                                               msg.orientation.y,
@@ -41,6 +44,7 @@ def convert_from_message(msg):
                                                msg.position.z))
     return numpy.dot(T,R)
 
+
 def convert_from_trans_message(msg):
     R = tf.transformations.quaternion_matrix((msg.rotation.x,
                                               msg.rotation.y,
@@ -50,8 +54,68 @@ def convert_from_trans_message(msg):
                                                msg.translation.y, 
                                                msg.translation.z))
     return numpy.dot(T,R)
-   
-   
+
+
+class RRT_Node:
+
+    def __init__(self, joint_val, parent = None):
+        # Variable
+        self.joint_val = joint_val
+        self.parent = parent
+
+
+class RRTSearchTree:
+    def __init__(self, init):
+        self.root = init
+        self.nodes = [self.root]
+
+    def find_nearest(self, query):
+        min_dist = 1000000
+        nearest_node = self.root
+        for n_i in self.nodes:
+            dist = numpy.linalg.norm(query - n_i.joint_val)
+            if dist < min_dist:
+                nearest_node = n_i
+                min_dist = dist
+        return nearest_node, min_dist
+
+    def add_node(self, node):
+        self.nodes.append(node)
+
+    def get_back_path(self, node):
+        path = []
+        while node.parent is not None:
+            path.append(node.joint_val)
+            node = node.parent
+        path.reverse()
+        return path
+
+class RRT:
+
+    def __init__(self, num_samples, no_joints, step_length = 0.5, limits = None):
+        # number of samples for time out
+        self.K = num_samples
+        # number of joint
+        self.n = no_joints
+        # step size to move in the direction of random configuration
+        self.epsilon = step_length
+        # limits set the lower and upper bound for the random config generation
+        # self.limits = limits
+        self.found_path = False
+
+    def sample(self, q_min, q_max):
+        new_config = [random.randrange(q_min, q_max) for _ in range(self.n)]
+        return numpy.array(new_config)
+
+    def extend(self, q):
+        (nearest_node, distance) = self.T.find_nearest(q)
+
+    def new_config_generator(self, nn_jointVal, random_sample, distance):
+        if distance < self.epsilon:
+            return random_sample
+        else:
+            new_config = nn_jointVal+ self.epsilon*((random_sample - nn_jointVal)/distance)
+            return new_config
 
 class MoveArm(object):
 
@@ -154,7 +218,7 @@ class MoveArm(object):
     """ This function will perform IK for a given transform T of the end-effector. It 
     returns a list q[] of 7 values, which are the result positions for the 7 joints of 
     the left arm, ordered from proximal to distal. If no IK solution is found, it 
-    returns an empy list.
+    returns an empty list.
     """
     def IK(self, T_goal):
         req = moveit_msgs.srv.GetPositionIKRequest()
@@ -187,17 +251,40 @@ class MoveArm(object):
         req.robot_state.joint_state = current_joint_state
         res = self.state_valid_service(req)
         return res.valid
-        
-     
-        
+
+    def connect_until(self, nn_config, new_config):
+        config = []
+        for idx in range(len(nn_config)):
+            if nn_config[idx] < new_config[idx]:
+                joint_val = nn_config[idx] + self.q_sample[idx]
+
+
     def motion_plan(self, q_start, q_goal, q_min, q_max):
         
         # Replace this with your code
         q_list = [q_start, q_goal]
+        # q_start, q_goal are list of joint values [q1, q2, q3,...,q7]
+        tree = []
+        root_node = RRT_node()
+        root_node.joint_val = numpy.array(q_start)
+        root_node.parent = None
+        tree.append(root_node)
+        while 1:
+            sample_node = RRT_node()
+            rand_sample = numpy.array([random.randrange(q_min, q_max) for _ in range(7)])
+            distances = [numpy.linalg.norm(each.joint_val-rand_sample) for each in tree]
+            min_index = distances.index(min(distances))
+
+            # move in the direction of closet node.
+            tree[min_index].joint_val - rand_sample
+
+
+        # return a path for the robot to follow
+        # A path consists of a list of points in C-space that the robot must go through.
+        # where each point in C-space is in turn a list specifying the values for all the robot joints.
 
         return q_list
-    
-    
+
     def create_trajectory(self, q_list, v_list, a_list, t):
         joint_trajectory = trajectory_msgs.msg.JointTrajectory()
         for i in range(0, len(q_list)):
