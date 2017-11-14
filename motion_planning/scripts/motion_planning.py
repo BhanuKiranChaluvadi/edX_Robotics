@@ -30,7 +30,7 @@ def convert_to_message(T):
     t.orientation.x = orientation[0]
     t.orientation.y = orientation[1]
     t.orientation.z = orientation[2]
-    t.orientation.w = orientation[3]        
+    t.orientation.w = orientation[3]
     return t
 
 
@@ -39,10 +39,10 @@ def convert_from_message(msg):
                                               msg.orientation.y,
                                               msg.orientation.z,
                                               msg.orientation.w))
-    T = tf.transformations.translation_matrix((msg.position.x, 
-                                               msg.position.y, 
+    T = tf.transformations.translation_matrix((msg.position.x,
+                                               msg.position.y,
                                                msg.position.z))
-    return numpy.dot(T,R)
+    return numpy.dot(T, R)
 
 
 def convert_from_trans_message(msg):
@@ -50,17 +50,16 @@ def convert_from_trans_message(msg):
                                               msg.rotation.y,
                                               msg.rotation.z,
                                               msg.rotation.w))
-    T = tf.transformations.translation_matrix((msg.translation.x, 
-                                               msg.translation.y, 
+    T = tf.transformations.translation_matrix((msg.translation.x,
+                                               msg.translation.y,
                                                msg.translation.z))
-    return numpy.dot(T,R)
+    return numpy.dot(T, R)
 
 
 class RRT_Node:
-
-    def __init__(self, joint_val, parent = None):
+    def __init__(self, joint_val, parent=None):
         # Variable
-        self.joint_val = joint_val
+        self.state = joint_val
         self.parent = parent
 
 
@@ -73,7 +72,7 @@ class RRTSearchTree:
         min_dist = 1000000
         nearest_node = self.root
         for n_i in self.nodes:
-            dist = numpy.linalg.norm(query - n_i.joint_val)
+            dist = numpy.linalg.norm(query - n_i.state)
             if dist < min_dist:
                 nearest_node = n_i
                 min_dist = dist
@@ -82,17 +81,18 @@ class RRTSearchTree:
     def add_node(self, node):
         self.nodes.append(node)
 
+    # Return list of lists
     def get_back_path(self, node):
         path = []
         while node.parent is not None:
-            path.append(node.joint_val)
+            path.append(node.state.tolist())
             node = node.parent
         path.reverse()
         return path
 
-class RRT:
 
-    def __init__(self, num_samples, no_joints, step_length = 0.5, limits = None):
+class RRT:
+    def __init__(self, num_samples, no_joints, step_length=0.5, limits=None):
         # number of samples for time out
         self.K = num_samples
         # number of joint
@@ -114,11 +114,11 @@ class RRT:
         if distance < self.epsilon:
             return random_sample
         else:
-            new_config = nn_jointVal+ self.epsilon*((random_sample - nn_jointVal)/distance)
+            new_config = nn_jointVal + self.epsilon * ((random_sample - nn_jointVal) / distance)
             return new_config
 
-class MoveArm(object):
 
+class MoveArm(object):
     def __init__(self):
         print "Motion Planning Initializing..."
         # Prepare the mutex for synchronization
@@ -129,13 +129,20 @@ class MoveArm(object):
         self.num_joints = 7
         self.q_min = []
         self.q_max = []
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
+        self.q_min.append(-3.1459);
+        self.q_max.append(3.1459)
         # How finely to sample each joint
         self.q_sample = [0.05, 0.05, 0.05, 0.1, 0.1, 0.1, 0.1]
         self.joint_names = ["lwr_arm_0_joint",
@@ -147,7 +154,7 @@ class MoveArm(object):
                             "lwr_arm_6_joint"]
 
         # Subscribes to information about what the current joint values are.
-        rospy.Subscriber("/joint_states", sensor_msgs.msg.JointState, 
+        rospy.Subscriber("/joint_states", sensor_msgs.msg.JointState,
                          self.joint_states_callback)
 
         # Subscribe to command for motion planning goal
@@ -155,20 +162,20 @@ class MoveArm(object):
                          self.move_arm_cb)
 
         # Publish trajectory command
-        self.pub_trajectory = rospy.Publisher("/joint_trajectory", trajectory_msgs.msg.JointTrajectory, 
-                                              queue_size=1)        
+        self.pub_trajectory = rospy.Publisher("/joint_trajectory", trajectory_msgs.msg.JointTrajectory,
+                                              queue_size=1)
 
         # Initialize variables
         self.joint_state = sensor_msgs.msg.JointState()
 
         # Wait for moveit IK service
         rospy.wait_for_service("compute_ik")
-        self.ik_service = rospy.ServiceProxy('compute_ik',  moveit_msgs.srv.GetPositionIK)
+        self.ik_service = rospy.ServiceProxy('compute_ik', moveit_msgs.srv.GetPositionIK)
         print "IK service ready"
 
         # Wait for validity check service
         rospy.wait_for_service("check_state_validity")
-        self.state_valid_service = rospy.ServiceProxy('check_state_validity',  
+        self.state_valid_service = rospy.ServiceProxy('check_state_validity',
                                                       moveit_msgs.srv.GetStateValidity)
         print "State validity service ready"
 
@@ -176,7 +183,7 @@ class MoveArm(object):
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.group_name = "lwr_arm"
-        self.group = moveit_commander.MoveGroupCommander(self.group_name) 
+        self.group = moveit_commander.MoveGroupCommander(self.group_name)
         print "MoveIt! interface ready"
 
         # Options
@@ -200,9 +207,10 @@ class MoveArm(object):
     our arm's set of joints in a particular order and returns a list q[] containing just 
     those values.
     """
+
     def q_from_joint_state(self, joint_state):
         q = []
-        for i in range(0,self.num_joints):
+        for i in range(0, self.num_joints):
             q.append(self.get_joint_val(joint_state, self.joint_names[i]))
         return q
 
@@ -211,8 +219,9 @@ class MoveArm(object):
     a particular order and edits the joint_state data structure to set the values 
     to the ones passed in.
     """
+
     def joint_state_from_q(self, joint_state, q):
-        for i in range(0,self.num_joints):
+        for i in range(0, self.num_joints):
             self.set_joint_val(joint_state, q[i], self.joint_names[i])
 
     """ This function will perform IK for a given transform T of the end-effector. It 
@@ -220,6 +229,7 @@ class MoveArm(object):
     the left arm, ordered from proximal to distal. If no IK solution is found, it 
     returns an empty list.
     """
+
     def IK(self, T_goal):
         req = moveit_msgs.srv.GetPositionIKRequest()
         req.ik_request.group_name = self.group_name
@@ -241,6 +251,7 @@ class MoveArm(object):
     one that is free of collisions. The values in q[] are assumed to be values for 
     the joints of the left arm, ordered from proximal to distal. 
     """
+
     def is_state_valid(self, q):
         req = moveit_msgs.srv.GetStateValidityRequest()
         req.group_name = self.group_name
@@ -252,38 +263,84 @@ class MoveArm(object):
         res = self.state_valid_service(req)
         return res.valid
 
-    def connect_until(self, nn_config, new_config):
-        config = []
-        for idx in range(len(nn_config)):
-            if nn_config[idx] < new_config[idx]:
-                joint_val = nn_config[idx] + self.q_sample[idx]
+    # Generate a random sample
+    def sample(self, q_min, q_max, n):
+        new_config = [random.randrange(q_min, q_max) for _ in range(n)]
+        return numpy.array(new_config)
 
+    # This function generate a new configuration in the direction of random sample in epsilon distance.
+    # nn_jointVal - nn stands for nearest neighbour.
+    def new_config_generator(self, nn_config, random_sample, epsilon):
+        distance = numpy.linalg.norm(nn_config, random_sample)
+        if distance < epsilon:
+            return random_sample
+        else:
+            new_config = nn_config + epsilon * ((random_sample - nn_config) / distance)
+            return new_config
 
+    # compares the given configuration difference with fixed resolution(q_sample).
+    def is_less(self, query):
+        for ai, bi in zip(self.q_sample, query):
+            if ai > bi:
+                pass
+            else:
+                return False
+        return True
+
+    # check collision along the length of specified configurations
+    def extend_until(self, nn_config, new_config):
+        if self.is_less(numpy.absolute(nn_config - new_config)):
+            if not self.is_state_valid(new_config):
+                return nn_config, False
+        else:
+            midpoint = (nn_config + new_config) / 2.0
+            node_, goal_reached = self.extend_until(nn_config, midpoint)
+            if not goal_reached:
+                return node_, goal_reached
+            node_, goal_reached = self.extend_until(midpoint, new_config)
+            if not goal_reached:
+                return node_, goal_reached
+        return new_config, True
+
+    # motion planning
     def motion_plan(self, q_start, q_goal, q_min, q_max):
-        
-        # Replace this with your code
-        q_list = [q_start, q_goal]
-        # q_start, q_goal are list of joint values [q1, q2, q3,...,q7]
-        tree = []
-        root_node = RRT_node()
-        root_node.joint_val = numpy.array(q_start)
-        root_node.parent = None
-        tree.append(root_node)
-        while 1:
-            sample_node = RRT_node()
-            rand_sample = numpy.array([random.randrange(q_min, q_max) for _ in range(7)])
-            distances = [numpy.linalg.norm(each.joint_val-rand_sample) for each in tree]
-            min_index = distances.index(min(distances))
 
-            # move in the direction of closet node.
-            tree[min_index].joint_val - rand_sample
+        # converting into numpy array
+        start = numpy.array(q_start)
+        goal = numpy.array(q_goal)
+
+        # variables
+        n = len(q_start)
+        epsilon = 0.5  # Can be varied - step size towards the random sample
+        K = 1000  # maximum number of samples before timeout
+
+        # initialize Node:
+        root_node = RRT_Node(start)
+
+        # initialize Tree
+        T = RRTSearchTree(root_node)
+
+        for each in range(0, K):
+            random_config = self.sample(q_min, q_max, n)
+            nearest_node, dist = T.find_nearest(random_config)
+            new_config = self.new_config_generator(nearest_node.state, random_config, epsilon)
+            collision_free_config, succeed = self.extend_until(nearest_node.state, new_config)
+            new_node = RRT_Node(collision_free_config, nearest_node)
+            T.add_node(new_node)
+            # check for direct connection with goal
+            some_thing, succeed = self.extend_until(new_node.state, goal)
+            if succeed:
+                print "Reached"
+                break
+
+        Final_path = T.get_back_path(T.nodes[-1])
 
 
         # return a path for the robot to follow
         # A path consists of a list of points in C-space that the robot must go through.
         # where each point in C-space is in turn a list specifying the values for all the robot joints.
 
-        return q_list
+        return 0
 
     def create_trajectory(self, q_list, v_list, a_list, t):
         joint_trajectory = trajectory_msgs.msg.JointTrajectory()
@@ -317,7 +374,7 @@ class MoveArm(object):
         q_start = self.q_from_joint_state(self.joint_state)
         print "Solving IK"
         q_goal = self.IK(T)
-        if len(q_goal)==0:
+        if len(q_goal) == 0:
             print "IK failed, aborting"
             self.mutex.release()
             return
@@ -329,7 +386,7 @@ class MoveArm(object):
             print "Trajectory received with " + str(len(trajectory.points)) + " points"
             self.execute(trajectory)
         self.mutex.release()
-        
+
     def joint_states_callback(self, joint_state):
         self.mutex.acquire()
         self.joint_state = joint_state
@@ -337,6 +394,7 @@ class MoveArm(object):
 
     def execute(self, joint_trajectory):
         self.pub_trajectory.publish(joint_trajectory)
+
 
 if __name__ == '__main__':
     moveit_commander.roscpp_initialize(sys.argv)
