@@ -265,13 +265,14 @@ class MoveArm(object):
 
     # Generate a random sample
     def sample(self, q_min, q_max, n):
-        new_config = [random.randrange(q_min, q_max) for _ in range(n)]
+        new_config = [random.uniform(q_min[i], q_max[i]) for i in range(n)]
         return numpy.array(new_config)
 
     # This function generate a new configuration in the direction of random sample in epsilon distance.
     # nn_jointVal - nn stands for nearest neighbour.
     def new_config_generator(self, nn_config, random_sample, epsilon):
-        distance = numpy.linalg.norm(nn_config, random_sample)
+        distance = numpy.linalg.norm(nn_config - random_sample)
+
         if distance < epsilon:
             return random_sample
         else:
@@ -330,17 +331,10 @@ class MoveArm(object):
             # check for direct connection with goal
             some_thing, succeed = self.extend_until(new_node.state, goal)
             if succeed:
-                print "Reached"
                 break
 
         Final_path = T.get_back_path(T.nodes[-1])
-
-
-        # return a path for the robot to follow
-        # A path consists of a list of points in C-space that the robot must go through.
-        # where each point in C-space is in turn a list specifying the values for all the robot joints.
-
-        return 0
+        return Final_path
 
     def create_trajectory(self, q_list, v_list, a_list, t):
         joint_trajectory = trajectory_msgs.msg.JointTrajectory()
