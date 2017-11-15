@@ -24,7 +24,7 @@ link_directories(/opt/ros/kinetic/lib/)
 
 
 # RUN:
-> roslaunch robot_sim kuka_lwr_proj3.launch
+> roslaunch robot_sim forwardKinematics.launch
 
 # IGNORE (if present):
 1. Unknown tag: com
