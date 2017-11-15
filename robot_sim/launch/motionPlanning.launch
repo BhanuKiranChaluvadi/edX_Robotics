@@ -1,0 +1,11 @@
+<launch>
+	
+  <include file="$(find motion_planning)/launch/mp.launch"> </include>
+
+  <node name="marker_control" pkg="motion_planning" type="marker_control.py" output="screen"/>
+
+  <node name="move_arm" pkg="motion_planning" type="motion_planning.py" output="screen"/>
+
+  <node name = "my_rviz" pkg="rviz" type="rviz" args = "-d $(find robot_sim)/config/proj5.rviz" />
+  
+</launch>
