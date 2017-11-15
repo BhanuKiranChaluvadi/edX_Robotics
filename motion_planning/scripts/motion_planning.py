@@ -85,10 +85,10 @@ class RRTSearchTree:
     def get_back_path(self, node):
         path = []
         while node.parent is not None:
-            path.append(node.state.tolist())
+            path.append(node.state)
             node = node.parent
         # root node
-        path.append(node.state.tolist())
+        path.append(node.state)
         path.reverse()
         return path
 
@@ -305,6 +305,27 @@ class MoveArm(object):
                 return node_, goal_reached
         return new_config, True
 
+    def smoothen(self, path):
+        points = len(path)
+        max_index = points-1
+        current_config = [path[0]]
+        next_index = 1
+        smoothened_path = []
+        while current_config:
+            left_config = current_config.pop()
+            smoothened_path.append(left_config)
+            for i in range(max_index, -1, -1):
+                right_config = path[i]
+                node_, succeed_ = self.extend_until(left_config, right_config)
+                if succeed_:
+                    next_index = i
+                    current_config.append(node_)
+                    break
+            if next_index == max_index:
+                smoothened_path.append(path[max_index])
+                break
+        return smoothened_path
+
     # motion planning
     def motion_plan(self, q_start, q_goal, q_min, q_max):
 
@@ -336,7 +357,10 @@ class MoveArm(object):
                 T.add_node(goal_node)
                 break
 
-        Final_path = T.get_back_path(T.nodes[-1])
+        path = T.get_back_path(T.nodes[-1])
+
+        # smoothening the path
+        Final_path = self.smoothen(path)
         return Final_path
 
     def create_trajectory(self, q_list, v_list, a_list, t):
